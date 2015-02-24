@@ -67,7 +67,6 @@ login_manager.init_app(app)
 
 from security_monkey.datastore import User, Role
 
-
 @login_manager.user_loader
 def load_user(email):
     """
@@ -170,3 +169,10 @@ from security_monkey.views.auditor_settings import AuditorSettingsGet
 from security_monkey.views.auditor_settings import AuditorSettingsPut
 api.add_resource(AuditorSettingsGet, '/api/1/auditorsettings')
 api.add_resource(AuditorSettingsPut, '/api/1/auditorsettings/<int:as_id>')
+
+## Jira Sync
+jirasync_file = os.environ.get('SECURITY_MONKEY_JIRA_SYNC')
+if jirasync_file:
+    jirasync = JiraSync(jirasync_file)
+else:
+    jirasync = None
