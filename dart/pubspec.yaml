@@ -16,6 +16,7 @@ dev_dependencies:
 transformers:
  - angular
  - dart_to_js_script_rewriter
+    dart_sdk: "/usr/local/opt/dart/libexec"
  - $dart2js:
     csp: true
     checked: false
