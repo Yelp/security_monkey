@@ -3,8 +3,9 @@ import yaml
 import getpass
 from jira.client import JIRA
 from jira.exceptions import JIRAError
-from security_monkey.datastore import Account, Technology, AuditorSettings
+from security_monkey.datastore import Account, Technology, AuditorSettings, ItemAudit
 from security_monkey import app, db
+from sqlalchemy import func
 
 class JiraSync(object):
     """ Syncs auditor issues with JIRA tickets. """
@@ -21,8 +22,8 @@ class JiraSync(object):
 
         try:
             self.client = JIRA(self.server, basic_auth=(self.account, self.password))
-        except JIRAError as e:
-            raise EAException("Error connecting to JIRA: %s" %(str(e)[:1024]))
+        except Exception as e:
+            raise Exception("Error connecting to JIRA: %s" %(str(e)[:1024]))
 
     def add_or_update_issue(self, issue, technology, account, count):
         summary = '{0} - {1} - {2}'.format(issue, technology, account)
@@ -66,7 +67,7 @@ class JiraSync(object):
         ).subquery()
 
         query = AuditorSettings.query.join(
-            (stmt, AuditorSettings.id == stmt.c.auditor_setting_id)
+            (stmt, AuditorSettings.id == ItemAudit.auditor_setting_id)
         ).join(
             (Technology, Technology.id == AuditorSettings.tech_id)
         ).join(

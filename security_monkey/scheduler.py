@@ -87,7 +87,9 @@ def _audit_changes(accounts, monitor, send_report, debug=True):
     au.save_issues()
     db.session.close()
 
-    jirasync.sync_issues()
+    if jirasync:
+        app.logger.info('Syncing issues with Jira')
+        jirasync.sync_issues()
 
 def run_account(account):
     """

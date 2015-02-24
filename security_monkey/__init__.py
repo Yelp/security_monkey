@@ -171,6 +171,8 @@ api.add_resource(AuditorSettingsGet, '/api/1/auditorsettings')
 api.add_resource(AuditorSettingsPut, '/api/1/auditorsettings/<int:as_id>')
 
 ## Jira Sync
+import os
+from security_monkey.jira import JiraSync
 jirasync_file = os.environ.get('SECURITY_MONKEY_JIRA_SYNC')
 if jirasync_file:
     jirasync = JiraSync(jirasync_file)
