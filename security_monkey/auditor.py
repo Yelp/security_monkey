@@ -221,8 +221,9 @@ class Auditor(object):
         app.logger.debug("Creating/Assigning Auditor Settings in account {} and tech {}".format(self.accounts, self.index))
 
         query = ItemAudit.query
-        query = query.join((AuditorSettings, AuditorSettings.id == ItemAudit.auditor_setting_id))
-        query = query.join((Technology, Technology.id == AuditorSettings.tech_id))
+        query = query.join((Item, Item.id == ItemAudit.item_id))
+        query = query.join((Account, Account.id == Item.account_id))
+        query = query.join((Technology, Technology.id == Item.tech_id))
         query = query.filter(Technology.name == self.index)
         issues = query.filter(ItemAudit.auditor_setting_id == None).all()
 
