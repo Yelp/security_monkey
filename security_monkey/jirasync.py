@@ -50,7 +50,7 @@ class JiraSync(object):
         summary_hash = hashlib.sha1(summary).digest().encode('base64')[:16]
         jql = 'project={0} and text~"{1}"'.format(self.project, summary_hash)
         issues = self.client.search_issues(jql)
-        
+
         url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, issue)
         description = ("This ticket was automatically created by Security Monkey. DO NOT EDIT ANYTHING BELOW THIS LINE\n"
                       "Number of issues: {0}\n"
@@ -59,7 +59,7 @@ class JiraSync(object):
                       "[View on Security Monkey|{4}]\n"
                       "Last updated: {1}".format(count, datetime.datetime.now().isoformat(), account, summary_hash, url))
 
-        
+
         if len(issues):
             for issue in issues:
                 # Make sure we found the exact ticket
@@ -69,7 +69,7 @@ class JiraSync(object):
                     issue.update(description = old_desc + description)
                     app.logger.debug("Updated issue {}".format(summary))
                     return
-                
+
         jira_args = {'project': {'key': self.project},
                      'issuetype': {'name': self.issue_type},
                      'summary': summary,
@@ -87,10 +87,10 @@ class JiraSync(object):
              (Technology, Technology.id == AuditorSettings.tech_id)
          ).join(
              (Account, Account.id == AuditorSettings.account_id)
-         ) 
+         )
 
          for auditorsetting in query.all():
              self.add_or_update_issue(auditorsetting.issue_text,
                                       auditorsetting.technology.name,
                                       auditorsetting.account.name,
-                                      len(auditorsetting.issues))  
+                                      len(auditorsetting.issues))
