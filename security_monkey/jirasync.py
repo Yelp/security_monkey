@@ -1,24 +1,37 @@
+"""
+.. module: security_monkey.jirasync
+    :platform: Unix
+    :synopsis: Creates and updates JIRA tickets based on current issues
+
+.. version:: $$VERSION$$
+.. moduleauthor:: Quentin Long <qlo@yelp.com>
+
+"""
 import datetime
+import hashlib
 import yaml
 import getpass
+
 from jira.client import JIRA
-from jira.exceptions import JIRAError
+from sqlalchemy import func
+
 from security_monkey.datastore import Account, Technology, AuditorSettings, ItemAudit
 from security_monkey import app, db
-from sqlalchemy import func
 
 class JiraSync(object):
     """ Syncs auditor issues with JIRA tickets. """
     def __init__(self, jira_file):
-        with open(jira_file) as jf:
-            data = jf.read()
-            data = yaml.load(data)
-            self.account = data['account']
-            self.password = getpass.getpass('Password for %s: ' %(self.account))
-            self.project = data['project']
-            self.server = data['server']
-            self.issue_type = data['issue_type']
-            self.url = data['url']
+        try:
+            with open(jira_file) as jf:
+                data = jf.read()
+                data = yaml.load(data)
+                self.account = data['account']
+                self.password = getpass.getpass('Password for %s: ' %(self.account))
+                self.project = data['project']
+                self.server = data['server']
+                self.issue_type = data['issue_type']
+                self.url = data['url']
+        except KeyError, IOError, yaml.scanner.ScannerError
 
         try:
             self.client = JIRA(self.server, basic_auth=(self.account, self.password))
@@ -26,9 +39,11 @@ class JiraSync(object):
             raise Exception("Error connecting to JIRA: %s" %(str(e)[:1024]))
 
     def add_or_update_issue(self, issue, technology, account, count):
+        """ Searches for existing tickets based on a hash of the constructed summary. If one exists,
+        it will update the count and preserve any leading description text. If not, it will create a ticket. """
         summary = '{0} - {1} - {2}'.format(issue, technology, account)
         summary_hash = hashlib.sha1(summary).digest().encode('base64')[:16]
-        jql = 'project=pincushion and text~"{1}"'.format(self.project, summary_hash)
+        jql = 'project={0} and text~"{1}"'.format(self.project, summary_hash)
         issues = self.client.search_issues(jql)
         
         url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, issue)
@@ -46,6 +61,7 @@ class JiraSync(object):
                     old_desc = issue.fields.description
                     old_desc = old_desc[:old_desc.find('This ticket was automatically created by Security Monkey')]
                     issue.update(description = old_desc + description)
+                    app.logger.debug("Updated issue {}".format(summary))
                     return
                 
         jira_args = {'project': {'key': self.project},
@@ -55,34 +71,20 @@ class JiraSync(object):
 
         try:
             issue = self.client.create_issue(**jira_args)
-        except JIRAError as e:
-            print "Error creating ticket", e
+            app.logger.debug("Created issue {}".format(summary))
+        except Exception as e:
+            app.logger.error("Error creating ticket: {}".format(e))
 
     def sync_issues(self):
-        stmt = db.session.query(
-            ItemAudit.auditor_setting_id,
-            func.count('*').label('issue_count')
-        ).group_by(
-            ItemAudit.auditor_setting_id
-        ).subquery()
-
+        """ Runs add_or_update_issue for every AuditorSetting. """
         query = AuditorSettings.query.join(
-            (stmt, AuditorSettings.id == ItemAudit.auditor_setting_id)
-        ).join(
-            (Technology, Technology.id == AuditorSettings.tech_id)
-        ).join(
-            (Account, Account.id == AuditorSettings.account_id)
-        )
+             (Technology, Technology.id == AuditorSettings.tech_id)
+         ).join(
+             (Account, Account.id == AuditorSettings.account_id)
+         ) 
 
-        for auditorsetting in query.all():
-            self.add_or_update_issue(auditorsetting.AuditorSettings.issue_text,
-                                     auditorsetting.Technology.name,
-                                     auditorsetting.Account.name,
-                                     auditorsetting.issue_count)
- 
-
-
-if __name__ == '__main__':
-    a = JiraSync('jira.yaml')
-    a.add_update_issue('Test issue', 'iamuser', 'systems+awsdev+ec2', 5)
-
+         for auditorsetting in query.all():
+             self.add_or_update_issue(auditorsetting.issue_text,
+                                      auditorsetting.technology.name,
+                                      auditorsetting.account.name,
+                                      len(auditorsetting.issues))  
