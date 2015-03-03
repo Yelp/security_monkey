@@ -3,7 +3,9 @@ part of security_monkey;
 @Component(
         selector: 'issue-table',
         templateUrl: 'packages/security_monkey/component/issue_table_component/issue_table_component.html',
-        cssUrl: const ['/css/bootstrap.min.css'])
+        //cssUrl: const ['/css/bootstrap.min.css']
+        useShadowDom: false
+)
 class IssueTableComponent extends PaginatedTable implements ScopeAware {
     List<Issue> issues = [];
     RouteProvider routeProvider;
@@ -21,7 +23,7 @@ class IssueTableComponent extends PaginatedTable implements ScopeAware {
         'searchconfig': null,
         'page': '1',
         'count': '25',
-        'enabledonly': true
+        'enabledonly': 'true'
     };
 
     IssueTableComponent(this.routeProvider, this.router, this.store) {

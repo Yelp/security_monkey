@@ -3,21 +3,19 @@ part of security_monkey;
 @Component(
     selector: 'settings-cmp',
     templateUrl: 'packages/security_monkey/component/settings_component/settings_component.html',
-    cssUrl: const ['/css/bootstrap.min.css'])
+    //cssUrl: const ['/css/bootstrap.min.css']
+    useShadowDom: false
+)
 class SettingsComponent extends PaginatedTable {
     Router router;
     List<Account> accounts;
     List<NetworkWhitelistEntry> cidrs;
     List<IgnoreEntry> ignorelist;
     List<AuditorSetting> auditorlist;
-    Scope scope;
     ObjectStore store;
     UserSetting user_setting;
 
-    SettingsComponent(this.router, this.store, Scope scope)
-            : this.scope = scope,
-              super(scope) {
-
+    SettingsComponent(this.router, this.store) {
         cidrs = new List<NetworkWhitelistEntry>();
         accounts = new List<Account>();
         store.customQueryOne(UserSetting, new CustomRequestParams(method: "GET", url: "$API_HOST/settings", withCredentials: true)).then((user_setting) {
@@ -91,7 +89,9 @@ class SettingsComponent extends PaginatedTable {
                         method: 'POST',
                         url: '$API_HOST/settings',
                         data: user_setting.toJson(),
-                        withCredentials: true)).then((_) {
+                        withCredentials: true,
+                        xsrfCookieName: 'XSRF-COOKIE',
+                        xsrfHeaderName:'X-CSRFToken')).then((_) {
             // Poor way to give feedback of success:
             super.is_loaded = true;
         });
@@ -135,6 +135,7 @@ class SettingsComponent extends PaginatedTable {
         store.update(auditor);
     }
 
+    String url_encode(input) => param_to_url(input);
 
     get isLoaded => super.is_loaded;
     get isError => super.is_error;

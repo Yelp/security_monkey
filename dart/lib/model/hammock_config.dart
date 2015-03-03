@@ -1,9 +1,9 @@
 import 'package:hammock/hammock.dart';
 import 'package:angular/angular.dart';
-import 'dart:mirrors';
 
 import 'network_whitelist_entry.dart';
 import 'Account.dart';
+import 'auditorsetting.dart';
 import 'Issue.dart';
 import 'Item.dart';
 import 'Revision.dart';
@@ -11,11 +11,17 @@ import 'RevisionComment.dart';
 import 'ItemComment.dart';
 import 'UserSetting.dart';
 import 'ignore_entry.dart';
-import 'auditorsetting.dart';
+
+@MirrorsUsed(
+        targets: const[
+            Account, IgnoreEntry, Issue, AuditorSetting,
+            Item, ItemComment, NetworkWhitelistEntry,
+            Revision, RevisionComment, UserSetting],
+        override: '*')
+import 'dart:mirrors';
+
 import 'package:security_monkey/util/constants.dart';
 
-//final serializeNWL = serializer("NetworkWhitelistEntry", ["id", "name", "cidr", "notes"]);
-//final deserializeNWL = deserializer(NetworkWhitelistEntry, ["id", "name", "cidr", "notes"]);
 final serializeAWSAccount = serializer("accounts", ["id", "active", "third_party", "name", "s3_name", "number", "notes"]);
 final serializeIssue = serializer("issues", ["id", "score", "issue", "notes", "justified", "justified_user", "justification", "justified_date", "item_id"]);
 final serializeRevision = serializer("revisions", ["id", "item_id", "config", "active", "date_created", "diff_html"]);
@@ -103,6 +109,8 @@ createHammockConfig(Injector inj) {
             })
             ..urlRewriter.baseUrl = '$API_HOST'
             ..requestDefaults.withCredentials = true
+            ..requestDefaults.xsrfCookieName = 'XSRF-COOKIE'
+            ..requestDefaults.xsrfHeaderName = 'X-CSRFToken'
             ..documentFormat = new JsonApiOrgFormat();
 }
 

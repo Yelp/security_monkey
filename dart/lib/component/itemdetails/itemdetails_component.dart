@@ -3,14 +3,15 @@ part of security_monkey;
 @Component(
         selector: 'itemdetails',
         templateUrl: 'packages/security_monkey/component/itemdetails/itemdetails.html',
-        cssUrl: const ['/css/bootstrap.min.css']
+        //cssUrl: const ['/css/bootstrap.min.css']
+        useShadowDom: false
 )
-class ItemDetailsComponent extends ShadowRootAware implements ScopeAware {
+class ItemDetailsComponent implements ScopeAware { // extends ShadowRootAware
     JustificationService js;
     UsernameService us;
 
     RouteProvider routeProvider;
-    ShadowRoot shadowRoot;
+    //ShadowRoot shadowRoot;
 
     Item item;
     String rev_id = null;
@@ -62,11 +63,13 @@ class ItemDetailsComponent extends ShadowRootAware implements ScopeAware {
 
     int _rev_index = 0;
     void loadMore() {
+      if (item != null) {
         List revisions = item.revisions;
-        print("Inside loadMore. $_rev_index of ${revisions.length}");
+        //print("Inside loadMore. $_rev_index of ${revisions.length}");
         if (_rev_index < revisions.length) {
             displayed_revisions.add(revisions.elementAt(_rev_index++));
         }
+      }
     }
 
     get user => us.name;
@@ -146,9 +149,10 @@ class ItemDetailsComponent extends ShadowRootAware implements ScopeAware {
 
     void _scrollTo(int revid) {
         print("Asked to scroll to revision $revid");
-        var item = shadowRoot.querySelector("#rev_id_$revid");
+        var item = querySelector("#rev_id_$revid");
         item.scrollIntoView(ScrollAlignment.TOP);
                 //ScrollAlignment.CENTER);
+                // shadowRoot.querySelector
     }
 
     void scrollTo(int revid) {
@@ -163,9 +167,9 @@ class ItemDetailsComponent extends ShadowRootAware implements ScopeAware {
         }
     }
 
-    void onShadowRoot(ShadowRoot shadowRoot) {
-        this.shadowRoot = shadowRoot;
-    }
+//    void onShadowRoot(ShadowRoot shadowRoot) {
+//        this.shadowRoot = shadowRoot;
+//    }
 
     String justification = "";
     void justify() {
