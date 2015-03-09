@@ -65,6 +65,10 @@ will preserve all text in the description before "This ticket was automatically 
 Security Monkey will automatically close tickets when they have zero open issues, by setting the state of the ticket to "Closed". Likewise, it will
 reopen a closed ticket if there are new open issues. This feature can be disabled by setting ``disable_transitions: true`` in the config.
 
+Justifying an issue will cause it to no longer be counted as an open issue.
+
+If an auditor is disabled, its issues will no longer be updated, opened or closed.
+
 Logs
 ====
 

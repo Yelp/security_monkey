@@ -9,6 +9,8 @@
 """
 import datetime
 import hashlib
+import time
+import urllib
 import yaml
 
 from jira.client import JIRA
@@ -56,14 +58,14 @@ class JiraSync(object):
             app.logger.error('Error opening issue {} ({}): {}'.format(issue.fields.summary, issue.key, e))
 
     def transition_issue(self, issue, transition_name):
-        transitions = client.transitions(issue)
+        transitions = self.client.transitions(issue)
         for transition in transitions:
             if transition['name'].lower() == transition_name.lower():
                 break
         else:
             app.logger.error('No transition {} for issue {}'.format(transition_name, issue.key))
             return
-        client.transition_issue(issue, transition['id'])
+        self.client.transition_issue(issue, transition['id'])
 
 
     def add_or_update_issue(self, issue, technology, account, count):
@@ -75,7 +77,7 @@ class JiraSync(object):
         jql = 'project={0} and text~"{1}"'.format(self.project, summary_hash)
         issues = self.client.search_issues(jql)
 
-        url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, issue)
+        url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, urllib.quote(issue, ''))
         timezone = time.tzname[time.localtime().tm_isdst]
         description = ("This ticket was automatically created by Security Monkey. DO NOT EDIT SUMMARY OR BELOW THIS LINE\n"
                       "Number of issues: {0}\n"
@@ -98,7 +100,7 @@ class JiraSync(object):
                 if issue.fields.status.name == 'Closed' and count:
                     self.open_issue(issue)
                     app.logger.debug("Reopened issue {} ({})".format(summary, issue.key))
-                elif issue.fields.status.name == 'Open' and count == 0:
+                elif issue.fields.status.name != 'Closed' and count == 0:
                     self.close_issue(issue)
                     app.logger.debug("Closed issue {} ({})".format(summary, issue.key))
                 return
@@ -119,15 +121,18 @@ class JiraSync(object):
             app.logger.error("Error creating issue {}: {}".format(summary, e))
 
     def sync_issues(self):
-         """ Runs add_or_update_issue for every AuditorSetting. """
-         query = AuditorSettings.query.join(
-             (Technology, Technology.id == AuditorSettings.tech_id)
-         ).join(
-             (Account, Account.id == AuditorSettings.account_id)
-         )
+        """ Runs add_or_update_issue for every AuditorSetting. """
+        query = AuditorSettings.query.join(
+            (Technology, Technology.id == AuditorSettings.tech_id)
+        ).join(
+            (Account, Account.id == AuditorSettings.account_id)
+        ).filter(
+            (AuditorSettings.disabled == False)
+        )
 
-         for auditorsetting in query.all():
-             self.add_or_update_issue(auditorsetting.issue_text,
-                                      auditorsetting.technology.name,
-                                      auditorsetting.account.name,
-                                      len(auditorsetting.issues))
+        for auditorsetting in query.all():
+            unjustified = [issue for issue in auditorsetting.issues if not issue.justified]
+            self.add_or_update_issue(auditorsetting.issue_text,
+                                     auditorsetting.technology.name,
+                                     auditorsetting.account.name,
+                                     len(unjustified))
