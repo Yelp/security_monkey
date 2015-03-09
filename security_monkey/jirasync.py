@@ -90,7 +90,7 @@ class JiraSync(object):
             # Make sure we found the exact ticket
             if issue.fields.summary == summary:
                 old_desc = issue.fields.description
-                old_desc = old_desc[:old_desc.find('This ticket was automatically created by Security Monkey')] 
+                old_desc = old_desc[:old_desc.find('This ticket was automatically created by Security Monkey')]
                 issue.update(description = old_desc + description)
                 app.logger.debug("Updated issue {} ({})".format(summary, issue.key))
 
@@ -108,7 +108,7 @@ class JiraSync(object):
         # Don't open a ticket with no issues
         if count == 0:
             return
-                
+
         jira_args = {'project': {'key': self.project},
                      'issuetype': {'name': self.issue_type},
                      'summary': summary,
