@@ -74,7 +74,7 @@ class JiraSync(object):
         summary_hash = hashlib.sha1(summary).digest().encode('base64')[:16]
         jql = 'project={0} and text~"{1}"'.format(self.project, summary_hash)
         issues = self.client.search_issues(jql)
-        
+
         url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, issue)
         timezone = time.tzname[time.localtime().tm_isdst]
         description = ("This ticket was automatically created by Security Monkey. DO NOT EDIT SUMMARY OR BELOW THIS LINE\n"
@@ -124,10 +124,10 @@ class JiraSync(object):
              (Technology, Technology.id == AuditorSettings.tech_id)
          ).join(
              (Account, Account.id == AuditorSettings.account_id)
-         ) 
+         )
 
          for auditorsetting in query.all():
              self.add_or_update_issue(auditorsetting.issue_text,
                                       auditorsetting.technology.name,
                                       auditorsetting.account.name,
-                                      len(auditorsetting.issues))  
+                                      len(auditorsetting.issues))
