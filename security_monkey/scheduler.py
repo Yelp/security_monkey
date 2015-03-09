@@ -75,7 +75,7 @@ def _find_changes(accounts, monitor, debug=True):
     db.session.close()
 
 def _audit_changes(accounts, monitor, send_report, debug=True):
-    """ Runs an auditors on all items """
+    """ Runs an auditors on all items and, if enabled, syncs Jira """
     accounts = __prep_accounts__(accounts)
     au = monitor.auditor_class(accounts=accounts, debug=True)
     au.audit_all_objects()
