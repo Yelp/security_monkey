@@ -26,7 +26,7 @@ import datastore
 from security_monkey import app, db
 from security_monkey.watcher import ChangeItem
 from security_monkey.common.jinja import get_jinja_env
-from security_monkey.datastore import User, AuditorSettings, Account, ItemAudit, Technology
+from security_monkey.datastore import User, AuditorSettings, Item, ItemAudit, Technology
 from security_monkey.common.utils.utils import send_email
 
 from sqlalchemy import and_
@@ -222,7 +222,6 @@ class Auditor(object):
 
         query = ItemAudit.query
         query = query.join((Item, Item.id == ItemAudit.item_id))
-        query = query.join((Account, Account.id == Item.account_id))
         query = query.join((Technology, Technology.id == Item.tech_id))
         query = query.filter(Technology.name == self.index)
         issues = query.filter(ItemAudit.auditor_setting_id == None).all()
