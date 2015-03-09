@@ -28,6 +28,7 @@ To use JIRA sync, you will need to create a YAML configuration file, specifying 
 ``project`` - The project key where tickets will be created.
 ``issue_type`` - The type of issue each ticket will be created as.
 ``url`` - The URL for Security Monkey. This will be used to create links back to Security Monkey.
+``disable_transitions`` - If true, Security Monkey will not close or reopen tickets.
 
 Using JIRA Synchronization
 ---------------------------
@@ -61,6 +62,9 @@ Before updating a ticket, Security Monkey will also compare the summary. If it i
 open a new ticket instead of updating the existing one. When updating, the number of issues and last updated fields will change. Security Monkey
 will preserve all text in the description before "This ticket was automatically created by Security Monkey", and remove anything after.
 
+Security Monkey will automatically close tickets when they have zero open issues, by setting the state of the ticket to "Closed". Likewise, it will
+reopen a closed ticket if there are new open issues. This feature can be disabled by setting ``disable_transitions: true`` in the config.
+
 Logs
 ====
 
@@ -80,3 +84,6 @@ or connectivity problems.
 ``JIRA sync configuration file contains malformed YAML: <error>`` (error) - The YAML could not be parsed.
 
 ``Syncing issues with Jira`` (info) - Auditors have finished running and JIRA sync is starting.
+
+``Error opening/closing ticket: <error>``: (error) - Security Monkey tried to set an issue to "Closed" or "Open". This error may mean that these transitions
+are named differently in your JIRA project. To disabl
