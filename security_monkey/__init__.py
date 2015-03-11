@@ -175,6 +175,10 @@ import os
 from security_monkey.jirasync import JiraSync
 jirasync_file = os.environ.get('SECURITY_MONKEY_JIRA_SYNC')
 if jirasync_file:
-    jirasync = JiraSync(jirasync_file)
+    try:
+        jirasync = JiraSync(jirasync_file)
+    except Exception as e:
+        app.logger.error(repr(e))
+        jirasync = None
 else:
     jirasync = None

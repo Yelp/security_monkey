@@ -34,11 +34,11 @@ class JiraSync(object):
                 self.url = data['url']
                 self.disable_transitions = data.get('disable_transitions', False)
         except KeyError as e:
-            app.logger.error('JIRA sync configuration missing required field: {}'.format(e))
+            raise Exception('JIRA sync configuration missing required field: {}'.format(e))
         except IOError as e:
-            app.logger.error('Error opening JIRA sync configuration file: {}'.format(e))
+            raise Exception('Error opening JIRA sync configuration file: {}'.format(e))
         except yaml.scanner.ScannerError as e:
-            app.logger.error('JIRA sync configuration file contains malformed YAML: {}'.format(e))
+            raise Exception('JIRA sync configuration file contains malformed YAML: {}'.format(e))
 
         try:
             self.client = JIRA(self.server, basic_auth=(self.account, self.password))
