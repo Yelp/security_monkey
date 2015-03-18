@@ -8,6 +8,7 @@
 
 """
 import datetime
+import urllib
 import yaml
 import time
 
@@ -32,11 +33,11 @@ class JiraSync(object):
                 self.url = data['url']
                 self.disable_transitions = data.get('disable_transitions', False)
         except KeyError as e:
-            app.logger.error('JIRA sync configuration missing required field: {}'.format(e))
+            raise Exception('JIRA sync configuration missing required field: {}'.format(e))
         except IOError as e:
-            app.logger.error('Error opening JIRA sync configuration file: {}'.format(e))
+            raise Exception('Error opening JIRA sync configuration file: {}'.format(e))
         except yaml.scanner.ScannerError as e:
-            app.logger.error('JIRA sync configuration file contains malformed YAML: {}'.format(e))
+            raise Exception('JIRA sync configuration file contains malformed YAML: {}'.format(e))
 
         try:
             self.client = JIRA(self.server, basic_auth=(self.account, self.password))
@@ -75,7 +76,7 @@ class JiraSync(object):
         jql = 'project={0} and summary~"{1}"'.format(self.project, summary_search)
         issues = self.client.search_issues(jql)
 
-        url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, issue)
+        url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, urllib.quote(issue, ''))
         timezone = time.tzname[time.localtime().tm_isdst]
         description = ("This ticket was automatically created by Security Monkey. DO NOT EDIT SUMMARY OR BELOW THIS LINE\n"
                       "Number of issues: {0}\n"
@@ -87,7 +88,7 @@ class JiraSync(object):
             # Make sure we found the exact ticket
             if issue.fields.summary == summary:
                 old_desc = issue.fields.description
-                old_desc = old_desc[:old_desc.find('This ticket was automatically created by Security Monkey')] 
+                old_desc = old_desc[:old_desc.find('This ticket was automatically created by Security Monkey')]
                 issue.update(description = old_desc + description)
                 app.logger.debug("Updated issue {} ({})".format(summary, issue.key))
 
@@ -97,7 +98,7 @@ class JiraSync(object):
                 if issue.fields.status.name == 'Closed' and count:
                     self.open_issue(issue)
                     app.logger.debug("Reopened issue {} ({})".format(summary, issue.key))
-                elif issue.fields.status.name == 'Open' and count == 0:
+                elif issue.fields.status.name != 'Closed' and count == 0:
                     self.close_issue(issue)
                     app.logger.debug("Closed issue {} ({})".format(summary, issue.key))
                 return
@@ -105,7 +106,7 @@ class JiraSync(object):
         # Don't open a ticket with no issues
         if count == 0:
             return
-                
+
         jira_args = {'project': {'key': self.project},
                      'issuetype': {'name': self.issue_type},
                      'summary': summary,
@@ -118,15 +119,18 @@ class JiraSync(object):
             app.logger.error("Error creating issue {}: {}".format(summary, e))
 
     def sync_issues(self):
-         """ Runs add_or_update_issue for every AuditorSetting. """
-         query = AuditorSettings.query.join(
-             (Technology, Technology.id == AuditorSettings.tech_id)
-         ).join(
-             (Account, Account.id == AuditorSettings.account_id)
-         )
+        """ Runs add_or_update_issue for every AuditorSetting. """
+        query = AuditorSettings.query.join(
+            (Technology, Technology.id == AuditorSettings.tech_id)
+        ).join(
+            (Account, Account.id == AuditorSettings.account_id)
+        ).filter(
+            (AuditorSettings.disabled == False)
+        )
 
-         for auditorsetting in query.all():
-             self.add_or_update_issue(auditorsetting.issue_text,
-                                      auditorsetting.technology.name,
-                                      auditorsetting.account.name,
-                                      len(auditorsetting.issues))
+        for auditorsetting in query.all():
+            unjustified = [issue for issue in auditorsetting.issues if not issue.justified]
+            self.add_or_update_issue(auditorsetting.issue_text,
+                                     auditorsetting.technology.name,
+                                     auditorsetting.account.name,
+                                     len(unjustified))
