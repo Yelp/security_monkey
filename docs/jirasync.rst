@@ -53,12 +53,10 @@ This ticket was automatically created by Security Monkey. DO NOT EDIT ANYTHING B
 Number of issues: X
 Account: Y
 View on Security Monkey
-XXXXXXXXXXXXXXX
 Last Updated: TIMESTAMP
 ```
 
-Where XXXXXXXXXXXXXXXX is a hash of the summary. This exists as a key for searching for existing tickets because JIRA does not support exact text matching.
-Before updating a ticket, Security Monkey will also compare the summary. If it is changed in any way, Security Monkey will
+Security Monkey will update tickets based on the summary. If it is changed in any way, Security Monkey will
 open a new ticket instead of updating the existing one. When updating, the number of issues and last updated fields will change. Security Monkey
 will preserve all text in the description before "This ticket was automatically created by Security Monkey", and remove anything after.
 

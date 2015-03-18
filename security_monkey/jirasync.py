@@ -8,8 +8,8 @@
 
 """
 import datetime
-import hashlib
 import yaml
+import time
 
 from jira.client import JIRA
 from sqlalchemy import func
@@ -56,23 +56,23 @@ class JiraSync(object):
             app.logger.error('Error opening issue {} ({}): {}'.format(issue.fields.summary, issue.key, e))
 
     def transition_issue(self, issue, transition_name):
-        transitions = client.transitions(issue)
+        transitions = self.client.transitions(issue)
         for transition in transitions:
             if transition['name'].lower() == transition_name.lower():
                 break
         else:
             app.logger.error('No transition {} for issue {}'.format(transition_name, issue.key))
             return
-        client.transition_issue(issue, transition['id'])
+        self.client.transition_issue(issue, transition['id'])
 
 
     def add_or_update_issue(self, issue, technology, account, count):
-        """ Searches for existing tickets based on a hash of the constructed summary. If one exists,
+        """ Searches for existing tickets based on the summary. If one exists,
         it will update the count and preserve any leading description text. If not, it will create a ticket. """
         summary = '{0} - {1} - {2}'.format(issue, technology, account)
-        # Searching by text in JIRA sucks, instead of matching the summary field, search for summary hash
-        summary_hash = hashlib.sha1(summary).digest().encode('base64')[:16]
-        jql = 'project={0} and text~"{1}"'.format(self.project, summary_hash)
+        # Having dashes in JQL cuases it to return no results
+        summary_search = summary.replace('- ', '')
+        jql = 'project={0} and summary~"{1}"'.format(self.project, summary_search)
         issues = self.client.search_issues(jql)
 
         url = "{0}/#/issues/-/{1}/{2}/-/True/{3}/1/25".format(self.url, technology, account, issue)
@@ -80,9 +80,8 @@ class JiraSync(object):
         description = ("This ticket was automatically created by Security Monkey. DO NOT EDIT SUMMARY OR BELOW THIS LINE\n"
                       "Number of issues: {0}\n"
                       "Account: {1}\n"
-                      "{2}\n"
-                      "[View on Security Monkey|{3}]\n"
-                      "Last updated: {4} {5}".format(count, account, summary_hash, url, datetime.datetime.now().isoformat(), timezone))
+                      "[View on Security Monkey|{2}]\n"
+                      "Last updated: {3} {4}".format(count, account, url, datetime.datetime.now().isoformat(), timezone))
 
         for issue in issues:
             # Make sure we found the exact ticket
