@@ -13,10 +13,10 @@ import yaml
 import time
 
 from jira.client import JIRA
-from sqlalchemy import func
 
-from security_monkey.datastore import Account, Technology, AuditorSettings, ItemAudit
-from security_monkey import app, db
+from security_monkey.datastore import Account, Technology, AuditorSettings
+from security_monkey import app
+
 
 class JiraSync(object):
     """ Syncs auditor issues with JIRA tickets. """
@@ -42,7 +42,7 @@ class JiraSync(object):
         try:
             self.client = JIRA(self.server, basic_auth=(self.account, self.password))
         except Exception as e:
-            raise Exception("Error connecting to JIRA: %s" %(str(e)[:1024]))
+            raise Exception("Error connecting to JIRA: {}".format(str(e)[:1024]))
 
     def close_issue(self, issue):
         try:
@@ -66,7 +66,6 @@ class JiraSync(object):
             return
         self.client.transition_issue(issue, transition['id'])
 
-
     def add_or_update_issue(self, issue, technology, account, count):
         """ Searches for existing tickets based on the summary. If one exists,
         it will update the count and preserve any leading description text. If not, it will create a ticket. """
@@ -89,7 +88,7 @@ class JiraSync(object):
             if issue.fields.summary == summary:
                 old_desc = issue.fields.description
                 old_desc = old_desc[:old_desc.find('This ticket was automatically created by Security Monkey')]
-                issue.update(description = old_desc + description)
+                issue.update(description=old_desc + description)
                 app.logger.debug("Updated issue {} ({})".format(summary, issue.key))
 
                 if self.disable_transitions:
