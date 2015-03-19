@@ -59,7 +59,7 @@ setup(
             'gunicorn==18.0',
             'M2Crypto==0.22.3',
             'botocore==0.78.0',
-	        'pyyaml==3.11',
-            'jira'
+            'pyyaml==3.11',
+            'jira==0.32'
     ]
 )
