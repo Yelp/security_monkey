@@ -117,7 +117,7 @@ class JiraSync(object):
         except Exception as e:
             app.logger.error("Error creating issue {}: {}".format(summary, e))
 
-    def sync_issues(self):
+    def sync_issues(self, accounts=None):
         """ Runs add_or_update_issue for every AuditorSetting. """
         query = AuditorSettings.query.join(
             (Technology, Technology.id == AuditorSettings.tech_id)
@@ -126,6 +126,9 @@ class JiraSync(object):
         ).filter(
             (AuditorSettings.disabled == False)
         )
+
+        if accounts:
+            query.filter(Account.id in accounts)
 
         for auditorsetting in query.all():
             unjustified = [issue for issue in auditorsetting.issues if not issue.justified]
