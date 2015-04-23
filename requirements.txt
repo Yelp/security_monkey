@@ -38,3 +38,4 @@ M2Crypto==0.22.3
 boto3==0.0.11
 botocore==0.78.0
 jira==0.32
+dpath==1.3.2
