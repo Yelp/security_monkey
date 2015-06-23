@@ -22,6 +22,7 @@ import time
 import logging
 from datetime import datetime, timedelta
 
+
 def __prep_accounts__(accounts):
     if accounts == 'all':
         accounts = Account.query.filter(Account.third_party==False).filter(Account.active==True).all()
@@ -30,11 +31,13 @@ def __prep_accounts__(accounts):
     else:
         return accounts.split(',')
 
+
 def __prep_monitor_names__(monitor_names):
     if monitor_names == 'all':
         return [monitor.index for monitor in all_monitors()]
     else:
         return monitor_names.split(',')
+
 
 def run_change_reporter(accounts, interval=None):
     """ Runs Reporter """
@@ -43,11 +46,13 @@ def run_change_reporter(accounts, interval=None):
     for account in accounts:
         reporter.run(account, interval)
 
+
 def find_changes(accounts, monitor_names, debug=True):
     monitor_names = __prep_monitor_names__(monitor_names)
     for monitor_name in monitor_names:
         monitor = get_monitor(monitor_name)
         _find_changes(accounts, monitor, debug)
+
 
 def audit_changes(accounts, monitor_names, send_report, debug=True):
     monitor_names = __prep_monitor_names__(monitor_names)
@@ -59,6 +64,7 @@ def audit_changes(accounts, monitor_names, send_report, debug=True):
             auditors.append(monitor.auditor_class(accounts=accounts, debug=True))
     if auditors:
         _audit_changes(accounts, auditors, send_report, debug)
+
 
 def _find_changes(accounts, monitor, debug=True):
     """ Runs a watcher and auditor on changed items """
@@ -78,6 +84,7 @@ def _find_changes(accounts, monitor, debug=True):
     cw.save()
     db.session.close()
 
+
 def _audit_changes(accounts, auditors, send_report, debug=True):
     """ Runs auditors on all items """
     for au in auditors:
@@ -93,24 +100,18 @@ def _audit_changes(accounts, auditors, send_report, debug=True):
         app.logger.info('Syncing {} issues on {} with Jira'.format(monitor.index, accounts))
         jirasync.sync_issues(accounts, monitor.index)
 
-def run_account(account):
-    """
-    This should be refactored into Reporter.
-    Runs the watchers/auditors for each account.
-    Does not run the alerter.
-    Times the operations and logs those results.
-    """
-    app.logger.info("Starting work on account {}.".format(account))
-    time1 = time.time()
-    for monitor in all_monitors():
-        find_changes(account, monitor)
-        app.logger.info("Account {} is done with {}".format(account, monitor.index))
-    time2 = time.time()
-    app.logger.info('Run Account %s took %0.1f s' % (account, (time2-time1)))
 
-
-pool = ThreadPool(core_threads=25, max_threads=30, keepalive=0)
-scheduler = Scheduler(standalone=True, threadpool=pool, coalesce=True, misfire_grace_time=30)
+pool = ThreadPool(
+    core_threads=app.config.get('CORE_THREADS', 25),
+    max_threads=app.config.get('MAX_THREADS', 30),
+    keepalive=0
+)
+scheduler = Scheduler(
+    standalone=True,
+    threadpool=pool,
+    coalesce=True,
+    misfire_grace_time=30
+)
 
 def setup_scheduler():
     """Sets up the APScheduler"""
@@ -125,8 +126,13 @@ def setup_scheduler():
             print "Scheduler adding account {}".format(account)
             rep = Reporter(accounts=[account])
             for period in rep.get_intervals(account):
-                scheduler.add_interval_job(run_change_reporter, minutes=period, start_date=datetime.now()+timedelta(seconds=2), args=[account, period])
-            auditors = [ a for (_, a) in rep.get_watchauditors(account) if a ]
+                scheduler.add_interval_job(
+                    run_change_reporter,
+                    minutes=period,
+                    start_date=datetime.now()+timedelta(seconds=2),
+                    args=[account, period]
+                )
+            auditors = [a for (_, a) in rep.get_watchauditors(account) if a]
             if auditors:
                 scheduler.add_cron_job(_audit_changes, hour=10, day_of_week="mon-fri", args=[account, auditors, True])
 
