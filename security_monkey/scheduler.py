@@ -18,6 +18,7 @@ from security_monkey.reporter import Reporter
 from security_monkey import app, db, handler, jirasync
 
 import traceback
+import time
 import logging
 from datetime import datetime, timedelta
 
@@ -99,22 +100,6 @@ def _audit_changes(accounts, auditors, send_report, debug=True):
         app.logger.info('Syncing {} issues on {} with Jira'.format(monitor.index, accounts))
         jirasync.sync_issues(accounts, monitor.index)
 
-def run_account(account):
-    """
-    This should be refactored into Reporter.
-    Runs the watchers/auditors for each account.
-    Does not run the alerter.
-    Times the operations and logs those results.
-    """
-    app.logger.info("Starting work on account {}.".format(account))
-    time1 = time.time()
-    for monitor in all_monitors():
-        find_changes(account, monitor)
-        app.logger.info("Account {} is done with {}".format(account, monitor.index))
-    time2 = time.time()
-    app.logger.info('Run Account %s took %0.1f s' % (account, (time2-time1)))
-
-
 
 pool = ThreadPool(
     core_threads=app.config.get('CORE_THREADS', 25),
@@ -127,7 +112,6 @@ scheduler = Scheduler(
     coalesce=True,
     misfire_grace_time=30
 )
-
 
 def setup_scheduler():
     """Sets up the APScheduler"""

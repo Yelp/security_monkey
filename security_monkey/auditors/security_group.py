@@ -218,4 +218,3 @@ class SecurityGroupAuditor(Auditor):
         assigned_instances = sg_item.config.get("assigned_to", [])
         if not assigned_instances:
             self.add_issue(severity, tag, sg_item)
-            
