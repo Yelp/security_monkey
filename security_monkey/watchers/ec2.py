@@ -1,4 +1,4 @@
-#     Copyright 2014 Netflix, Inc.
+#     Copyright 2015 Yelp, Inc.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
     :platform: Unix
 
 .. version:: $$VERSION$$
-.. moduleauthor:: Patrick Kelley <pkelley@netflix.com> @monkeysecurity
+.. moduleauthor:: Quentin Long <qlo@yelp.com>
 
 """
 
@@ -75,6 +75,7 @@ class EC2(Watcher):
                     instance_info = {'tags': instance.tags,
                                      'type': instance.instance_type,
                                      'vpc_id': instance.vpc_id,
+                                     'subnet_id': instance.subnet_id,
                                      'security_groups': groups,
                                      'id': instance.id,
                                      'dns_name': instance.private_dns_name}
