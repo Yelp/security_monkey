@@ -72,7 +72,7 @@ class EC2(Watcher):
                         continue
 
                     groups = [{'id': group.id, 'name': group.name} for group in instance.groups]
-                    instance_info = {'tags': instance.tags,
+                    instance_info = {'tags': dict(instance.tags),
                                      'type': instance.instance_type,
                                      'vpc_id': instance.vpc_id,
                                      'subnet_id': instance.subnet_id,
