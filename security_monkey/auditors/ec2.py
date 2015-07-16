@@ -37,7 +37,7 @@ class EC2Auditor(Auditor):
     i_am_plural = EC2.i_am_plural
     users = []
     teams = []
-    
+
     def find_valid_creators(self):
         """
         Finds the names of all tracked users and saves them for validating creator tags.
@@ -93,7 +93,20 @@ class EC2Auditor(Auditor):
         severity = 2
         tags = ec2item.config.get('tags', {})
         if 'owner' in tags:
-            if tags['owner'].strip('@yelp.com') not in self.teams:
+            owner = tags['owner'].replace('@yelp.com', '').replace('-', '_')
+            if owner not in self.teams:
                 notes = 'Owner tag is {0}'.format(tags['owner'])
                 self.add_issue(severity, tag, ec2item, notes=notes)
 
+    def check_valid_creator_tag(self, ec2item):
+        """
+        alert on an creator tag that is not an iamuser
+        """
+        tag = "EC2 instance has an creator tag which doesn't match an existing iamuser"
+        severity = 2
+        tags = ec2item.config.get('tags', {})
+        if 'creator' in tags:
+            creator = tags['creator'].replace('@yelp.com', '')
+            if creator not in self.users:
+                notes = 'Creator tag is {0}'.format(tags['creator'])
+                self.add_issue(severity, tag, ec2item, notes=notes)
