@@ -73,7 +73,9 @@ class EC2Auditor(Auditor):
         severity = 3
         tags = ec2item.config.get('tags', {})
         if 'owner' not in tags:
-            self.add_issue(severity, tag, ec2item, notes=None)
+            # TODO: remove below exception for mrjobs INFRA-3453
+            if 'aws:elasticmapreduce:job-flow-id' not in tags:
+                self.add_issue(severity, tag, ec2item, notes=None)
 
     def check_for_creator_tag(self, ec2item):
         """
