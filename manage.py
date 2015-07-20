@@ -95,6 +95,14 @@ def add_account(number, third_party, name, s3_name, active, notes, force):
     else:
         app.logger.info('Account with id {} already exists'.format(number))
 
+@manager.option('-u', '--user', dest='user', type=unicode, required=True)
+def grant_admin(user):
+    from security_monkey.common.utils.utils import grant_admin
+    res = grant_admin(user)
+    if res:
+        app.logger.info('Successfully granted admin'.format(name))
+    else:
+        app.logger.info("That user doesn't exist")
 
 class APIServer(Command):
     def __init__(self, host='127.0.0.1', port=app.config.get('API_PORT'), workers=6):

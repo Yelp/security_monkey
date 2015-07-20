@@ -22,7 +22,7 @@
 """
 
 from security_monkey import app, mail, db
-from security_monkey.datastore import Account
+from security_monkey.datastore import Account, User, Role
 from flask_mail import Message
 import boto
 import traceback
@@ -115,5 +115,22 @@ def add_account(number, third_party, name, s3_name, active, notes, edit=False):
     account.active = active
     account.third_party = third_party
     db.session.add(account)
+    db.session.commit()
+    return True
+
+def grant_admin(user):
+    query = User.query.filter(User.email == user)
+    if query.count() == 0:
+       return False
+    user = query.first()
+    # Find or add role admin
+    role = Role.query.filter(Role.name == 'admin').first()
+    if role is None:
+        role = Role(name='admin', description='Allows the user to justify issues and modify account settings')
+        db.session.add(role)
+    elif role in user.roles:
+        return True
+    user.roles.append(role)
+    db.session.add(user)
     db.session.commit()
     return True

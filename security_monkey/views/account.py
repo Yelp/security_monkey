@@ -14,6 +14,7 @@
 
 from security_monkey.views import AuthenticatedService
 from security_monkey.views import __check_auth__
+from security_monkey.views import __check_admin__
 from security_monkey.views import ACCOUNT_FIELDS
 from security_monkey.datastore import Account
 from security_monkey.datastore import User
@@ -125,6 +126,9 @@ class AccountGetPutDelete(AuthenticatedService):
         if auth:
             return retval
 
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit accounts"}, 403
+
         self.reqparse.add_argument('name', required=False, type=unicode, help='Must provide account name', location='json')
         self.reqparse.add_argument('s3_name', required=False, type=unicode, help='Will use name if s3_name not provided.', location='json')
         self.reqparse.add_argument('number', required=False, type=unicode, help='Add the account number if available.', location='json')
@@ -184,6 +188,9 @@ class AccountGetPutDelete(AuthenticatedService):
         auth, retval = __check_auth__(self.auth_dict)
         if auth:
             return retval
+
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit accounts"}, 403
 
         # Need to unsubscribe any users first:
         users = User.query.filter(User.accounts.any(Account.id == account_id)).all()

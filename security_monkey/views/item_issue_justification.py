@@ -14,6 +14,7 @@
 
 from security_monkey.views import AuthenticatedService
 from security_monkey.views import __check_auth__
+from security_monkey.views import __check_admin__
 from security_monkey.views import AUDIT_FIELDS
 from security_monkey.datastore import ItemAudit
 from security_monkey import db
@@ -80,6 +81,9 @@ class JustifyPostDelete(AuthenticatedService):
         if auth:
             return retval
 
+        if not __check_admin__():
+            return {"Error": "You must be an admin to justify issues"}, 403
+
         self.reqparse.add_argument('justification', required=False, type=str, help='Must provide justification', location='json')
         args = self.reqparse.parse_args()
 
@@ -144,6 +148,9 @@ class JustifyPostDelete(AuthenticatedService):
         auth, retval = __check_auth__(self.auth_dict)
         if auth:
             return retval
+
+        if not __check_admin__():
+            return {"Error": "You must be an admin to delete justifications"}, 403
 
         item = ItemAudit.query.filter(ItemAudit.id == audit_id).first()
         if not item:

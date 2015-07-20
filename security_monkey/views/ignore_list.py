@@ -14,6 +14,7 @@
 
 from security_monkey.views import AuthenticatedService
 from security_monkey.views import __check_auth__
+from security_monkey.views import __check_admin__
 from security_monkey.views import IGNORELIST_FIELDS
 from security_monkey.datastore import IgnoreListEntry
 from security_monkey.datastore import Technology
@@ -128,6 +129,9 @@ class IgnoreListGetPutDelete(AuthenticatedService):
         if auth:
             return retval
 
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit the ignore list"}, 403
+
         self.reqparse.add_argument('prefix', required=True, type=unicode, help='A prefix must be provided which matches the objects you wish to ignore.', location='json')
         self.reqparse.add_argument('notes', required=False, type=unicode, help='Add context.', location='json')
         self.reqparse.add_argument('technology', required=True, type=unicode, help='Network CIDR required.', location='json')
@@ -193,6 +197,9 @@ class IgnoreListGetPutDelete(AuthenticatedService):
         auth, retval = __check_auth__(self.auth_dict)
         if auth:
             return retval
+
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit the ignore list"}, 403
 
         IgnoreListEntry.query.filter(IgnoreListEntry.id == item_id).delete()
         db.session.commit()
@@ -315,6 +322,9 @@ class IgnorelistListPost(AuthenticatedService):
         auth, retval = __check_auth__(self.auth_dict)
         if auth:
             return retval
+
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit the ignore list"}, 403
 
         self.reqparse.add_argument('prefix', required=True, type=unicode, help='A prefix must be provided which matches the objects you wish to ignore.', location='json')
         self.reqparse.add_argument('notes', required=False, type=unicode, help='Add context.', location='json')

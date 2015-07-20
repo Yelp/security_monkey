@@ -156,3 +156,15 @@ def __check_auth__(auth_dict):
     if not current_user.is_authenticated():
         return True, ({"auth": auth_dict}, 401)
     return None, None
+
+
+def __check_admin__():
+    """
+    Returns:
+    True if user is authenticated and is an admin
+    """
+    if current_user.is_authenticated():
+        for role in current_user.roles:
+            if role.name == 'admin':
+                return True
+    return False

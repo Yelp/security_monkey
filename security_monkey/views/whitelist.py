@@ -14,6 +14,7 @@
 
 from security_monkey.views import AuthenticatedService
 from security_monkey.views import __check_auth__
+from security_monkey.views import __check_admin__
 from security_monkey.views import WHITELIST_FIELDS
 from security_monkey.datastore import NetworkWhitelistEntry
 from security_monkey import db
@@ -136,6 +137,9 @@ class WhitelistListPost(AuthenticatedService):
         auth, retval = __check_auth__(self.auth_dict)
         if auth:
             return retval
+
+        if not __check_admin__():
+            return {"Error": "You must be an admin to change the whitelist"}, 403
 
         self.reqparse.add_argument('name', required=True, type=unicode, help='Must provide account name', location='json')
         self.reqparse.add_argument('cidr', required=True, type=unicode, help='Network CIDR required.', location='json')
@@ -265,6 +269,9 @@ class WhitelistGetPutDelete(AuthenticatedService):
         if auth:
             return retval
 
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit the whitelist"}, 403
+
         self.reqparse.add_argument('name', required=True, type=unicode, help='Must provide account name', location='json')
         self.reqparse.add_argument('cidr', required=True, type=unicode, help='Network CIDR required.', location='json')
         self.reqparse.add_argument('notes', required=False, type=unicode, help='Add context.', location='json')
@@ -323,6 +330,9 @@ class WhitelistGetPutDelete(AuthenticatedService):
         auth, retval = __check_auth__(self.auth_dict)
         if auth:
             return retval
+
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit the whitelist"}, 403
 
         NetworkWhitelistEntry.query.filter(NetworkWhitelistEntry.id == item_id).delete()
         db.session.commit()

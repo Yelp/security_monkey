@@ -1,5 +1,6 @@
 from security_monkey.views import AuthenticatedService
 from security_monkey.views import __check_auth__
+from security_monkey.views import __check_admin__
 from security_monkey.datastore import Account, AuditorSettings, Technology, ItemAudit
 from security_monkey.views import AUDITORSETTING_FIELDS
 from security_monkey import db
@@ -208,6 +209,9 @@ class AuditorSettingsPut(AuthenticatedService):
         auth, retval = __check_auth__(self.auth_dict)
         if auth:
             return retval
+
+        if not __check_admin__():
+            return {"Error": "You must be an admin to edit the auditor settings"}, 403
 
         self.reqparse.add_argument('disabled', type=bool, required=True, location='json')
         args = self.reqparse.parse_args()
