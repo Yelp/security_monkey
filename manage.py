@@ -100,7 +100,7 @@ def grant_admin(user):
     from security_monkey.common.utils.utils import grant_admin
     res = grant_admin(user)
     if res:
-        app.logger.info('Successfully granted admin'.format(name))
+        app.logger.info('{} successfully granted admin'.format(name))
     else:
         app.logger.info("That user doesn't exist")
 
