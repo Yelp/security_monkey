@@ -67,8 +67,18 @@ class EC2(Watcher):
                     continue
                 app.logger.debug("Found {} {}".format(len(all_instances), EC2.i_am_plural))
                 for instance in all_instances:
+                    # A list of properties, in order of priority, to try and use as the name
+                    names = [instance.tags.get('Name'),
+                             instance.private_dns_name,
+                             instance.id]
+                    for name in names:
+                        if name: break
 
-                    if self.check_ignore_list(instance.id):
+                    if self.check_ignore_list(name):
+                        continue
+
+                    # Dont try to track pending, rebooting, terminated, etc, instances as they are missing attributes
+                    if instance.state not in ['running', 'stopped']:
                         continue
 
                     groups = [{'id': group.id, 'name': group.name} for group in instance.groups]
@@ -79,9 +89,7 @@ class EC2(Watcher):
                                      'security_groups': groups,
                                      'id': instance.id,
                                      'dns_name': instance.private_dns_name}
-                    name = instance.tags.get('Name')
-                    if not name:
-                        name = instance.private_dns_name
+
                     item = EC2Item(region=region.name, account=account, name=name,
                                    config=instance_info)
                     item_list.append(item)
