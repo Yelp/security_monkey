@@ -72,7 +72,8 @@ class EC2(Watcher):
                              instance.private_dns_name,
                              instance.id]
                     for name in names:
-                        if name: break
+                        if name:
+                            break
 
                     if self.check_ignore_list(name):
                         continue
