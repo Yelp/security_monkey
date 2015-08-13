@@ -399,6 +399,7 @@ class ChangeItem(object):
         self.confirmed_new_issues = []
         self.confirmed_fixed_issues = []
         self.confirmed_existing_issues = []
+        self.confirmed_disabled_issues = []
         self.found_new_issue = False
 
     @classmethod
@@ -445,6 +446,7 @@ class ChangeItem(object):
             'confirmed_new_issues': self.confirmed_new_issues,
             'confirmed_fixed_issues': self.confirmed_fixed_issues,
             'confirmed_existing_issues': self.confirmed_existing_issues,
+            'confirmed_disabled_issues': self.confirmed_disabled_issues,
             'pdiff_html': self.get_pdiff_html()
         }
 

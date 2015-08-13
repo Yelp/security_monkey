@@ -139,6 +139,16 @@ class Auditor(object):
         """
         Save all new issues.  Delete all fixed issues.
         """
+        # Load a mapping of all AuditorSettings to mark disabled issues
+        disabled_map = {}
+        query = AuditorSettings.query
+        query = query.join((Technology, Technology.id == AuditorSettings.tech_id))
+        query = query.join((Account, Account.id == AuditorSettings.account_id))
+        for auditor_setting in query.all():
+            account_map = disabled_map.setdefault(auditor_setting.account.name, {})
+            tech_map = account_map.setdefault(auditor_setting.technology.name, {})
+            tech_map[auditor_setting.issue_text] = auditor_setting.disabled
+
         app.logger.debug("\n\nSaving Issues.")
         for item in self.items:
             if not hasattr(item, 'db_item'):
@@ -150,18 +160,25 @@ class Auditor(object):
             # Add new issues
             old_scored = [("{} -- {}".format(old_issue.issue, old_issue.notes), old_issue.score) for old_issue in existing_issues]
             for new_issue in new_issues:
+                disabled = disabled_map.get(item.account, {}).get(item.index, {}).get(new_issue.issue, False)
                 nk = "{} -- {}".format(new_issue.issue, new_issue.notes)
                 if (nk, new_issue.score) not in old_scored:
                     app.logger.debug("Saving NEW issue {}".format(nk))
                     item.found_new_issue = True
-                    item.confirmed_new_issues.append(new_issue)
+                    if not disabled:
+                        item.confirmed_new_issues.append(new_issue)
+                    else:
+                        item.confirmed_disabled_issues.append(new_issue)
                     item.db_item.issues.append(new_issue)
                     db.session.add(item.db_item)
                     db.session.add(new_issue)
                 else:
                     for issue in existing_issues:
                         if issue.issue == new_issue.issue and issue.notes == new_issue.notes and issue.score == new_issue.score:
-                            item.confirmed_existing_issues.append(issue)
+                            if not disabled:
+                                item.confirmed_existing_issues.append(issue)
+                            else:
+                                item.confirmed_disabled_issues.append(issue)
                             break
                     key = "{}/{}/{}/{}".format(item.index, item.region, item.account, item.name)
                     app.logger.debug("Issue was previously found. Not overwriting.\n\t{}\n\t{}".format(key, nk))
