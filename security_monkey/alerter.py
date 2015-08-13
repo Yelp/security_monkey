@@ -37,10 +37,10 @@ def get_subject(has_issues, has_new_issue, has_unjustified_issue, account, watch
         return "[{}] Changes in {}".format(account, watcher_str)
 
 
-def report_content(content):
+def report_content(content, issues_only=False):
     jenv = get_jinja_env()
     template = jenv.get_template('jinja_change_email.html')
-    body = template.render(content)
+    body = template.render(content, issues_only=issues_only)
     # app.logger.info(body)
     return body
 
@@ -69,12 +69,12 @@ class Alerter(object):
         """
         changed_watchers = [watcher_auditor[0] for watcher_auditor in self.watchers_auditors if watcher_auditor[0].is_changed()]
         has_issues = has_new_issue = has_unjustified_issue = False
+        issue_only_emails = []
         for watcher in changed_watchers:
             (has_issues, has_new_issue, has_unjustified_issue) = watcher.issues_found()
             if has_issues:
                 users = User.query.filter(User.accounts.any(name=self.account)).filter(User.change_reports=='ISSUES').all()
-                new_emails = [user.email for user in users]
-                self.emails.extend(new_emails)
+                issue_only_emails = [user.email for user in users]
                 break
 
         watcher_types = [watcher.index for watcher in changed_watchers]
@@ -86,5 +86,8 @@ class Alerter(object):
         app.logger.info("Alerter: Found some changes in {}: {}".format(self.account, watcher_str))
         content = {u'watchers': changed_watchers}
         body = report_content(content)
+        issue_only_body = report_content(content, issues_only=True)
         subject = get_subject(has_issues, has_new_issue, has_unjustified_issue, self.account, watcher_str)
+        if issue_only_emails:
+            res = send_email(subject=subject, recipients=issue_only_emails, html=issue_only_body)
         return send_email(subject=subject, recipients=self.emails, html=body)
