@@ -20,6 +20,8 @@
 
 """
 
+import copy
+
 from security_monkey.watcher import Watcher
 from security_monkey.watcher import ChangeItem
 from security_monkey.constants import TROUBLE_REGIONS
@@ -73,6 +75,9 @@ class SecurityGroup(Watcher):
 
                 try:
                     rec2 = connect(account, 'ec2', region=region)
+                    rds_region = copy.copy(region)
+                    rds_region.endpoint = rds_region.endpoint.replace('ec2', 'rds')
+                    rds = connect(account, 'rds', region=rds_region)
                     # Retrieve security groups here
                     sgs = self.wrap_aws_rate_limited_call(
                         rec2.get_all_security_groups
@@ -87,7 +92,12 @@ class SecurityGroup(Watcher):
                         instances = self.wrap_aws_rate_limited_call(
                             rec2.get_only_instances
                         )
-                        app.logger.info("Number of instances found in region {}: {}".format(region.name, len(instances)))
+                        rds_instances = self.wrap_aws_rate_limited_call(
+                            rds.get_all_dbinstances
+                        )
+
+                        app.logger.info("Number of instances found in region {}: {} ({} ec2 {} rds)".format(region.name, len(instances) + len(rds_instances),
+                                                                                                            len(instances), len(rds_instances)))
                 except Exception as e:
                     if region.name not in TROUBLE_REGIONS:
                         exc = BotoConnectionIssue(str(e), self.index, account, region.name)
@@ -100,12 +110,21 @@ class SecurityGroup(Watcher):
                     app.logger.info("Creating mapping of sg_id's to instances")
                     # map sgid => instance
                     sg_instances = {}
+                    sg_rds_instances = {}
                     for instance in instances:
                         for group in instance.groups:
                             if group.id not in sg_instances:
                                 sg_instances[group.id] = [instance]
                             else:
                                 sg_instances[group.id].append(instance)
+
+                    for rds_instance in rds_instances:
+                        for group in rds_instance.vpc_security_groups:
+                            if group.vpc_group not in sg_rds_instances:
+                                sg_rds_instances[group.vpc_group] = [rds_instance]
+                            else:
+                                sg_rds_instances[group.vpc_group].append(rds_instance)
+
 
                     app.logger.info("Creating mapping of instance_id's to tags")
                     # map instanceid => tags
@@ -149,8 +168,9 @@ class SecurityGroup(Watcher):
                     item_config['rules'] = sorted(item_config['rules'])
 
                     if self.get_detail_level() == 'SUMMARY':
+                        num_inst = len(sg_instances.get(sg.id, [])) + len(sg_rds_instances.get(sg.id, []))
                         if sg.id in sg_instances:
-                            item_config["assigned_to"] = "{} instances".format(len(sg_instances[sg.id]))
+                            item_config["assigned_to"] = "{} instances".format(num_inst)
                         else:
                             item_config["assigned_to"] = "0 instances"
 
@@ -164,6 +184,8 @@ class SecurityGroup(Watcher):
                                 else:
                                     tagdict = {"instance_id": instance.id}
                                 assigned_to.append(tagdict)
+                        if sg.id in sg_rds_instances:
+                            assigned_to.extend(sg_rds_instances[sg.id])
                         item_config["assigned_to"] = assigned_to
 
                     # Issue 40: Security Groups can have a name collision between EC2 and
