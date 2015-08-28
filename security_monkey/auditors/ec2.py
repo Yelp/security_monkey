@@ -45,6 +45,7 @@ class EC2Auditor(Auditor):
         iamuser = Technology.query.filter(Technology.name == 'iamuser').first()
         query = Item.query.filter(Item.tech_id == iamuser.id)
         self.users = [user.name for user in query.all()]
+        self.users.append('mrjob-emr') # TODO INFRA-3453
 
     def find_valid_owners(self):
         """
@@ -59,6 +60,8 @@ class EC2Auditor(Auditor):
             # Use a backup list of teams
             app.logger.error("Error trying to read /nail/security_monkey/common.yaml: {0}".format(e))
             self.teams = BACKUP_TEAM_LIST
+
+        self.teams.append('mrjob') # TODO INFRA-3453
 
     def __init__(self, accounts=None, debug=False):
         super(EC2Auditor, self).__init__(accounts=accounts, debug=debug)
