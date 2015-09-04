@@ -78,10 +78,29 @@ class SecurityGroup(Watcher):
                     rds_region = copy.copy(region)
                     rds_region.endpoint = rds_region.endpoint.replace('ec2', 'rds')
                     rds = connect(account, 'rds', region=rds_region)
+
                     # Retrieve security groups here
                     sgs = self.wrap_aws_rate_limited_call(
                         rec2.get_all_security_groups
                     )
+                    
+                    # Retrieve redshift clusters
+                    redshift = connect(account, 'redshift', region=region)
+                    all_clusters = []
+                    marker = None
+                    while True:
+                        response = self.wrap_aws_rate_limited_call(
+                            redshift.describe_clusters,
+                            marker=marker
+                        )
+                        all_clusters.extend(response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'])
+                        if response['DescribeClustersResponse']['DescribeClustersResult']['Marker'] is not None:
+                            marker = response['DescribeClustersResponse']['DescribeClustersResult']['Marker']
+                        else:
+                            break
+
+                except Exception as e:
+                    if region.name not in TROUBLE_REGIONS:
 
                     if self.get_detail_level() != 'NONE':
                         # We fetch tags here to later correlate instances
@@ -111,6 +130,7 @@ class SecurityGroup(Watcher):
                     # map sgid => instance
                     sg_instances = {}
                     sg_rds_instances = {}
+                    sg_redshift_instances = {}
                     for instance in instances:
                         for group in instance.groups:
                             if group.id not in sg_instances:
@@ -120,11 +140,12 @@ class SecurityGroup(Watcher):
 
                     for rds_instance in rds_instances:
                         for group in rds_instance.vpc_security_groups:
-                            if group.vpc_group not in sg_rds_instances:
-                                sg_rds_instances[group.vpc_group] = [rds_instance]
-                            else:
-                                sg_rds_instances[group.vpc_group].append(rds_instance)
+                            sg_rds_instances.setdefault(group.vpc_group, []).append(rds_instance)
 
+                    for redshift_cluster in all_clusters:
+                        for sg in redshift_cluster['VpcSecurityGroups']:
+                            if sg['status'] == 'active':
+                                sg_redshift_instances.setdefault(sg['VpcSecurityGroupId'], []).append(redshift_cluster)
 
                     app.logger.info("Creating mapping of instance_id's to tags")
                     # map instanceid => tags
@@ -168,7 +189,7 @@ class SecurityGroup(Watcher):
                     item_config['rules'] = sorted(item_config['rules'])
 
                     if self.get_detail_level() == 'SUMMARY':
-                        num_inst = len(sg_instances.get(sg.id, [])) + len(sg_rds_instances.get(sg.id, []))
+                        num_inst = len(sg_instances.get(sg.id, [])) + len(sg_rds_instances.get(sg.id, [])) + len(sg_redshift_instances.get(sg.id, []))
                         if sg.id in sg_instances:
                             item_config["assigned_to"] = "{} instances".format(num_inst)
                         else:
@@ -186,6 +207,8 @@ class SecurityGroup(Watcher):
                                 assigned_to.append(tagdict)
                         if sg.id in sg_rds_instances:
                             assigned_to.extend(sg_rds_instances[sg.id])
+                        if sg.id in sg_redshift_instances:
+                            assigned_to.extend(sg_redshift_instances[sg.id])
                         item_config["assigned_to"] = assigned_to
 
                     # Issue 40: Security Groups can have a name collision between EC2 and
