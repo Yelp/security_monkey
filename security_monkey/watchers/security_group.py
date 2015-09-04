@@ -83,7 +83,7 @@ class SecurityGroup(Watcher):
                     sgs = self.wrap_aws_rate_limited_call(
                         rec2.get_all_security_groups
                     )
-                    
+
                     # Retrieve redshift clusters
                     redshift = connect(account, 'redshift', region=region)
                     all_clusters = []
