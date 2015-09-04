@@ -84,23 +84,6 @@ class SecurityGroup(Watcher):
                         rec2.get_all_security_groups
                     )
 
-                    # Retrieve redshift clusters
-                    redshift = connect(account, 'redshift', region=region)
-                    all_clusters = []
-                    marker = None
-                    while True:
-                        response = self.wrap_aws_rate_limited_call(
-                            redshift.describe_clusters,
-                            marker=marker
-                        )
-                        all_clusters.extend(response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'])
-                        if response['DescribeClustersResponse']['DescribeClustersResult']['Marker'] is not None:
-                            marker = response['DescribeClustersResponse']['DescribeClustersResult']['Marker']
-                        else:
-                            break
-
-                except Exception as e:
-                    if region.name not in TROUBLE_REGIONS:
 
                     if self.get_detail_level() != 'NONE':
                         # We fetch tags here to later correlate instances
@@ -111,12 +94,30 @@ class SecurityGroup(Watcher):
                         instances = self.wrap_aws_rate_limited_call(
                             rec2.get_only_instances
                         )
+
+                        # Retrieve RDS instances
                         rds_instances = self.wrap_aws_rate_limited_call(
                             rds.get_all_dbinstances
                         )
 
-                        app.logger.info("Number of instances found in region {}: {} ({} ec2 {} rds)".format(region.name, len(instances) + len(rds_instances),
-                                                                                                            len(instances), len(rds_instances)))
+                        # Retrieve redshift clusters
+                        redshift = connect(account, 'redshift', region=region)
+                        redshift_clusters = []
+                        marker = None
+                        while True:
+                            response = self.wrap_aws_rate_limited_call(
+                                redshift.describe_clusters,
+                                marker=marker
+                            )
+                            redshift_clusters.extend(response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'])
+                            if response['DescribeClustersResponse']['DescribeClustersResult']['Marker'] is not None:
+                                marker = response['DescribeClustersResponse']['DescribeClustersResult']['Marker']
+                            else:
+                                break
+
+                        app.logger.info("Number of instances found in region {}: {} "
+                                        "({} ec2, {} rds, {} redshift)".format(region.name, len(instances) + len(rds_instances),
+                                                                               len(instances), len(rds_instances), len(redshift_clusters)))
                 except Exception as e:
                     if region.name not in TROUBLE_REGIONS:
                         exc = BotoConnectionIssue(str(e), self.index, account, region.name)
@@ -142,7 +143,7 @@ class SecurityGroup(Watcher):
                         for group in rds_instance.vpc_security_groups:
                             sg_rds_instances.setdefault(group.vpc_group, []).append(rds_instance)
 
-                    for redshift_cluster in all_clusters:
+                    for redshift_cluster in redshift_clusters:
                         for sg in redshift_cluster['VpcSecurityGroups']:
                             if sg['status'] == 'active':
                                 cluster_info = {'Redshift ClusterIdentifier': redshift_cluster['ClusterIdentifier']}
