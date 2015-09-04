@@ -145,7 +145,8 @@ class SecurityGroup(Watcher):
                     for redshift_cluster in all_clusters:
                         for sg in redshift_cluster['VpcSecurityGroups']:
                             if sg['status'] == 'active':
-                                sg_redshift_instances.setdefault(sg['VpcSecurityGroupId'], []).append(redshift_cluster)
+                                cluster_info = {'Redshift ClusterIdentifier': redshift_cluster['ClusterIdentifier']}
+                                sg_redshift_instances.setdefault(sg['VpcSecurityGroupId'], []).append(cluster_info)
 
                     app.logger.info("Creating mapping of instance_id's to tags")
                     # map instanceid => tags
