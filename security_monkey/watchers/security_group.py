@@ -84,7 +84,6 @@ class SecurityGroup(Watcher):
                         rec2.get_all_security_groups
                     )
 
-
                     if self.get_detail_level() != 'NONE':
                         # We fetch tags here to later correlate instances
                         tags = self.wrap_aws_rate_limited_call(
