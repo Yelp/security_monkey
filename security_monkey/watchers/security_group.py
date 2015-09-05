@@ -121,9 +121,9 @@ class SecurityGroup(Watcher):
                     for rds_instance in rds_instances:
                         for group in rds_instance.vpc_security_groups:
                             if group.vpc_group not in sg_rds_instances:
-                                sg_rds_instances[group.vpc_group] = [rds_instance]
+                                sg_rds_instances[group.vpc_group] = [rds_instance.id]
                             else:
-                                sg_rds_instances[group.vpc_group].append(rds_instance)
+                                sg_rds_instances[group.vpc_group].append(rds_instance.id)
 
 
                     app.logger.info("Creating mapping of instance_id's to tags")
