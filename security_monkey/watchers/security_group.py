@@ -94,6 +94,8 @@ class SecurityGroup(Watcher):
                         instances = self.wrap_aws_rate_limited_call(
                             rec2.get_only_instances
                         )
+
+                        # Retrieve RDS instances
                         rds_instances = self.wrap_aws_rate_limited_call(
                             rds.get_all_dbinstances
                         )
@@ -110,8 +112,24 @@ class SecurityGroup(Watcher):
                             else:
                                 break
 
-                        app.logger.info("Number of instances found in region {}: {} ec2, {} rds, {} elb".format(
-                                            region.name, len(instances), len(rds_instances), len(elbs)))
+                        # Retrieve redshift clusters
+                        redshift = connect(account, 'redshift', region=region)
+                        redshift_clusters = []
+                        marker = None
+                        while True:
+                            response = self.wrap_aws_rate_limited_call(
+                                redshift.describe_clusters,
+                                marker=marker
+                            )
+                            redshift_clusters.extend(response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'])
+                            if response['DescribeClustersResponse']['DescribeClustersResult']['Marker'] is not None:
+                                marker = response['DescribeClustersResponse']['DescribeClustersResult']['Marker']
+                            else:
+                                break
+
+                        app.logger.info("Number of instances found in region {}: {} "
+                                        "({} ec2, {} rds, {} redshift)".format(region.name, len(instances) + len(rds_instances),
+                                                                               len(instances), len(rds_instances), len(redshift_clusters)))
                 except Exception as e:
                     if region.name not in TROUBLE_REGIONS:
                         exc = BotoConnectionIssue(str(e), self.index, account, region.name)
@@ -126,6 +144,7 @@ class SecurityGroup(Watcher):
                     sg_instances = {}
                     sg_rds_instances = {}
                     sg_elb_instances = {}
+                    sg_redshift_instances = {}
                     for instance in instances:
                         for group in instance.groups:
                             if group.id not in sg_instances:
@@ -144,6 +163,12 @@ class SecurityGroup(Watcher):
                         for group in elb.security_groups:
                             elb_info = {'Load balancer': elb.name}
                             sg_elb_instances.setdefault(group, []).append(elb_info)
+
+                    for redshift_cluster in redshift_clusters:
+                        for sg in redshift_cluster['VpcSecurityGroups']:
+                            if sg['status'] == 'active':
+                                cluster_info = {'Redshift ClusterIdentifier': redshift_cluster['ClusterIdentifier']}
+                                sg_redshift_instances.setdefault(sg['VpcSecurityGroupId'], []).append(cluster_info)
 
                     app.logger.info("Creating mapping of instance_id's to tags")
                     # map instanceid => tags
@@ -187,7 +212,7 @@ class SecurityGroup(Watcher):
                     item_config['rules'] = sorted(item_config['rules'])
 
                     if self.get_detail_level() == 'SUMMARY':
-                        num_inst = len(sg_instances.get(sg.id, [])) + len(sg_rds_instances.get(sg.id, []))
+                        num_inst = len(sg_instances.get(sg.id, [])) + len(sg_rds_instances.get(sg.id, [])) + len(sg_redshift_instances.get(sg.id, []))
                         if sg.id in sg_instances:
                             item_config["assigned_to"] = "{} instances".format(num_inst)
                         else:
@@ -207,6 +232,8 @@ class SecurityGroup(Watcher):
                             assigned_to.extend(sg_rds_instances[sg.id])
                         if sg.id in sg_elb_instances:
                             assigned_to.extend(sg_elb_instances[sg.id])
+                        if sg.id in sg_redshift_instances:
+                            assigned_to.extend(sg_redshift_instances[sg.id])
                         item_config["assigned_to"] = assigned_to
 
                     # Issue 40: Security Groups can have a name collision between EC2 and
