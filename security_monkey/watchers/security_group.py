@@ -78,6 +78,8 @@ class SecurityGroup(Watcher):
                     rds_region = copy.copy(region)
                     rds_region.endpoint = rds_region.endpoint.replace('ec2', 'rds')
                     rds = connect(account, 'rds', region=rds_region)
+                    elb_conn = connect(account, 'elb', region=region.name)
+
                     # Retrieve security groups here
                     sgs = self.wrap_aws_rate_limited_call(
                         rec2.get_all_security_groups
@@ -95,9 +97,21 @@ class SecurityGroup(Watcher):
                         rds_instances = self.wrap_aws_rate_limited_call(
                             rds.get_all_dbinstances
                         )
+                        marker = None
+                        elbs = []
+                        while True:
+                            response = self.wrap_aws_rate_limited_call(
+                                elb_conn.get_all_load_balancers,
+                                marker=marker
+                            )
+                            elbs.extend(response)
+                            if response.next_marker:
+                                marker = response.next_marker
+                            else:
+                                break
 
-                        app.logger.info("Number of instances found in region {}: {} ({} ec2 {} rds)".format(region.name, len(instances) + len(rds_instances),
-                                                                                                            len(instances), len(rds_instances)))
+                        app.logger.info("Number of instances found in region {}: {} ec2, {} rds, {} elb".format(
+                                            region.name, len(instances), len(rds_instances), len(elbs)))
                 except Exception as e:
                     if region.name not in TROUBLE_REGIONS:
                         exc = BotoConnectionIssue(str(e), self.index, account, region.name)
@@ -111,6 +125,7 @@ class SecurityGroup(Watcher):
                     # map sgid => instance
                     sg_instances = {}
                     sg_rds_instances = {}
+                    sg_elb_instances = {}
                     for instance in instances:
                         for group in instance.groups:
                             if group.id not in sg_instances:
@@ -125,6 +140,10 @@ class SecurityGroup(Watcher):
                             else:
                                 sg_rds_instances[group.vpc_group].append(rds_instance.id)
 
+                    for elb in elbs:
+                        for group in elb.security_groups:
+                            elb_info = {'Load balancer': elb.name}
+                            sg_elb_instances.setdefault(group, []).append(elb_info)
 
                     app.logger.info("Creating mapping of instance_id's to tags")
                     # map instanceid => tags
@@ -186,6 +205,8 @@ class SecurityGroup(Watcher):
                                 assigned_to.append(tagdict)
                         if sg.id in sg_rds_instances:
                             assigned_to.extend(sg_rds_instances[sg.id])
+                        if sg.id in sg_elb_instances:
+                            assigned_to.extend(sg_elb_instances[sg.id])
                         item_config["assigned_to"] = assigned_to
 
                     # Issue 40: Security Groups can have a name collision between EC2 and
