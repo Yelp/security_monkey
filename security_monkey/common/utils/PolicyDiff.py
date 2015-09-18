@@ -333,7 +333,7 @@ def color(text, color):
 
 
 def added(text):
-    return color(text, "green")
+    return color(text, "blue")
 
 
 def deleted(text):
