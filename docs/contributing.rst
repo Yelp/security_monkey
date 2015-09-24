@@ -9,6 +9,7 @@ hacking on Security Monkey and contributing back your patches.
 Development Setup OS X
 ======================
 
+<<<<<<< HEAD
 Install Brew (http://brew.sh)
   Requirement - Xcode Command Line Tools (Popup - Just click Install)::
 
@@ -142,91 +143,20 @@ Manually Run the Watchers
   You can run the auditors against the items currently in the database::
 
     python manage.py audit_changes -a all -m redshift --send_report=False
+=======
+Please review the `Mac OS X Development Setup Instructions <dev_setup_osx.rst>`_ to set up your Mac for Security Monkey development. 
+>>>>>>> 89266a33712d96df1375ee1e7252d8bdc502b1f8
 
 
 Development Setup Ubuntu
 ========================
 
-Apt-get Installs
-  These must be installed first.::
+Please review the `Ubuntu Development Setup Instructions <dev_setup_ubuntu.rst>`_ to set up your Ubuntu installation for Security Monkey Development.
 
-    sudo apt-get install git git-flow python-pip postgresql postgresql-contrib libpq-dev python-dev swig
+Development Setup Windows
+========================
 
-Install Virtualenv
-  A tool to create isolated Python environments::
-
-    sudo pip install virtualenv
-
-  Create a folder to hold your virtualenvs::
-
-    cd ~
-    mkdir virtual_envs
-    cd virtual_envs
-
-  Create a virtualenv for security_monkey::
-
-    virtualenv security_monkey
-
-  Activate the security_monkey virtualenv::
-
-    source ~/virtual_envs/security_monkey/bin/activate
-
-Clone the repository
-  Clone the security monkey code repository.::
-
-    cd ~
-    git clone https://github.com/Netflix/security_monkey.git
-    cd security_monkey
-
-Install Pip Requirements
-  Pip will install all the dependencies into the current virtualenv.::
-
-    pip install -r requirements.txt
-
-SECURITY_MONKEY_SETTINGS
-  Set the environment variable in your current session that tells Flask where the conifguration file is located.::
-
-    export SECURITY_MONKEY_SETTINGS=`pwd`/env-config/config-local.py
-    # Note - I like to append this to the virtualenv activate script
-    vi $HOME/virtual_envs/security_monkey/bin/activate
-    export SECURITY_MONKEY_SETTINGS=$HOME/security_monkey/env-config/config-local.py
-
-Postgres
-  Install Postgres.  Create a database for security monkey and add a role.  Set the timezone to GMT.::
-
-    sudo -u postgres psql
-    CREATE DATABASE "securitymonkeydb";
-    CREATE ROLE "securitymonkeyuser" LOGIN PASSWORD 'securitymonkeypass';
-    GRANT Usage, Create ON SCHEMA "securitymonkeydb" TO "securitymonkeyuser";
-    set timezone TO 'GMT';
-
-Init DB:
-  Run Alembic/FlaskMigrate to create all the database tables.::
-
-    python manage.py db upgrade
-
-Start the API:
-  This starts the REST API that the Angular application will communicate with.::
-
-    python manage.py runserver
-
-Launch Dart Editor
-  Download the Dartlang and Editor from ( http://www.dartlang.org/ )
-
-  Edit dart/lib/util/constants.dart and set API_HOST to this value::
-
-    final String API_HOST = 'http://127.0.0.1:5000/api/1';
-
-  In the Dart Editor, right click on dart/web/ui.html and select "Run in Dartium" from the dropdown menu.
-
-Register a user
-  Chromium/Dartium will launch and will redirect to the login page.  Select the Register link ( http://127.0.0.1/register ) to create an account.
-
-Setup an account
-  After you have registered an account, proceed to login ( http://127.0.0.1/login ).  Once logged in, click on Settings and on the *+* to add a new account.
-
-More
-  Read the OS X sections on ``Obtaining instance credentials`` and how to ``Manually Run the Watchers``.
+Download VirtualBox, install Ubuntu, and then review the `Ubuntu Development Setup Instructions <dev_setup_ubuntu.rst>`_ to set up your Ubuntu VM for Security Monkey Development.
 
 Submitting changes
 ==================
@@ -261,4 +191,3 @@ Additional resources
 - `Issue tracker <https://github.com/netflix/security_monkey/issues>`_
 
 - `GitHub documentation <https://help.github.com/>`_
-

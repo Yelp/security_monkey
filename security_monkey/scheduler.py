@@ -89,12 +89,14 @@ def _audit_changes(accounts, auditors, send_report, debug=True):
     """ Runs auditors on all items """
     for au in auditors:
         au.audit_all_objects()
+        au.save_issues()
         if send_report:
             report = au.create_report()
             au.email_report(report)
-        au.save_issues()
 
-    db.session.close()
+        if jirasync:
+            app.logger.info('Syncing {} issues on {} with Jira'.format(au.index, accounts))
+            jirasync.sync_issues(accounts, au.index)
 
     if jirasync:
         app.logger.info('Syncing {} issues on {} with Jira'.format(monitor.index, accounts))

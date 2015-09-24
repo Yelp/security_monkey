@@ -25,7 +25,6 @@ ORIGINS = [
     # Adding this next one so you can also access the dart UI by prepending /static to the path.
     'https://{}:{}'.format(app.config.get('FQDN'), app.config.get('API_PORT')),
     'https://{}:{}'.format(app.config.get('FQDN'), app.config.get('NGINX_PORT')),
-    'https://{}:80'.format(app.config.get('FQDN')),
     # FOR LOCAL DEV IN DART EDITOR:
     'http://127.0.0.1:3030',
     'http://127.0.0.1:8080'
@@ -92,6 +91,7 @@ ACCOUNT_FIELDS = {
     's3_name': fields.String,
     'number': fields.String,
     'notes': fields.String,
+    'role_name': fields.String,
     'active': fields.Boolean,
     'third_party': fields.Boolean
 }
