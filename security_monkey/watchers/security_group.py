@@ -166,7 +166,7 @@ class SecurityGroup(Watcher):
 
                     for redshift_cluster in redshift_clusters:
                         for sg in redshift_cluster['VpcSecurityGroups']:
-                            if sg['status'] == 'active':
+                            if sg['Status'] == 'active':
                                 cluster_info = {'Redshift ClusterIdentifier': redshift_cluster['ClusterIdentifier']}
                                 sg_redshift_instances.setdefault(sg['VpcSecurityGroupId'], []).append(cluster_info)
 
