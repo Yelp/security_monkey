@@ -84,7 +84,9 @@ class SQSAuditor(Auditor):
                     try:
                         account_numbers.append(str(re.search('arn:aws:sns:[a-z-]+-\d:([0-9-]+):', topic_arn).group(1)))
                     except:
-                        raise InvalidARN(topic_arn)
+                        #raise InvalidARN(topic_arn)
+                        # Not all ARNs have an account number, no need to raise an Exception!
+                        # Especially one that doesn't get caught :(
 
             else:
                 if isinstance(princ_aws, list):

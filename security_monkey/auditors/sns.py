@@ -84,7 +84,9 @@ class SNSAuditor(Auditor):
                     try:
                         account_numbers.append(str(re.search('arn:aws:iam::([0-9-]+):', princ_aws).group(1)))
                     except:
-                        raise InvalidARN(princ_aws)
+                        #raise InvalidARN(princ_aws)
+                        # ARNs dont always have account, ignore this instead of raising an exception
+                        pass
 
             for account_number in account_numbers:
                 self._check_account(account_number, snsitem, 'policy')
