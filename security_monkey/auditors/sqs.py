@@ -87,6 +87,7 @@ class SQSAuditor(Auditor):
                         #raise InvalidARN(topic_arn)
                         # Not all ARNs have an account number, no need to raise an Exception!
                         # Especially one that doesn't get caught :(
+                        pass
 
             else:
                 if isinstance(princ_aws, list):
