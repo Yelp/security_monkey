@@ -207,3 +207,14 @@ class SecurityGroupAuditor(Auditor):
             if "10.0.0.0/8" == cidr:
                 notes = "{} on {}".format(cidr, self.__port_for_rule__(rule))
                 self.add_issue(severity * multiplier, tag, sg_item, notes=notes)
+
+    def check_securitygroup_unassigned(self, sg_item):
+        """
+        Make sure the SG is assigned
+        """
+        tag = "Security Group is not assigned to any instances"
+        severity = 1
+
+        assigned_instances = sg_item.config.get("assigned_to", [])
+        if not assigned_instances:
+            self.add_issue(severity, tag, sg_item)
