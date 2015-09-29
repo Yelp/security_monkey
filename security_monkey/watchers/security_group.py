@@ -100,6 +100,8 @@ class SecurityGroup(Watcher):
                             rds.get_all_dbinstances
                         )
                         marker = None
+
+                        # Retrieve ELBs
                         elbs = []
                         while True:
                             response = self.wrap_aws_rate_limited_call(
@@ -127,9 +129,10 @@ class SecurityGroup(Watcher):
                             else:
                                 break
 
+                        num_total_instances = len(instances) + len(rds_instances) + len(redshift_clusters) + len(elbs)
                         app.logger.info("Number of instances found in region {}: {} "
-                                        "({} ec2, {} rds, {} redshift)".format(region.name, len(instances) + len(rds_instances),
-                                                                               len(instances), len(rds_instances), len(redshift_clusters)))
+                                        "({} ec2, {} rds, {} redshift, {} elb)".format(region.name, num_total_instances, len(instances), 
+                                                                                       len(rds_instances), len(redshift_clusters), len(elbs)))
                 except Exception as e:
                     if region.name not in TROUBLE_REGIONS:
                         exc = BotoConnectionIssue(str(e), self.index, account, region.name)
