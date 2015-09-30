@@ -230,7 +230,8 @@ class SecurityGroup(Watcher):
                     item_config['rules'] = sorted(item_config['rules'])
 
                     if self.get_detail_level() == 'SUMMARY':
-                        num_inst = len(sg_instances.get(sg.id, [])) + len(sg_rds_instances.get(sg.id, [])) + len(sg_redshift_instances.get(sg.id, []))
+                        num_inst = (len(sg_instances.get(sg.id, [])) + len(sg_rds_instances.get(sg.id, [])) + 
+                                    len(sg_redshift_instances.get(sg.id, [])) + len(sg_elb_instances.get(sg.id, [])))
                         if sg.id in sg_instances:
                             item_config["assigned_to"] = "{} instances".format(num_inst)
                         else:
